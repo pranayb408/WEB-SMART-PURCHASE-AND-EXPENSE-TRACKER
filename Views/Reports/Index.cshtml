@@ -1,0 +1,453 @@
+@model PersonalExpenseTracker.ViewModels.ReportsViewModel
+@{
+    ViewData["Title"] = $"{Model.ReportType} Financial & Purchase Report";
+    var months = (ViewBag.Months as IEnumerable<dynamic>)?.ToList();
+    var years = (ViewBag.AvailableYears as List<int>) ?? new List<int> { Model.SelectedYear };
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1">
+            <i class="bi bi-graph-up-arrow text-primary me-2"></i>Smart Financial & Purchase Reports
+        </h2>
+        <p class="text-muted mb-0">
+            Comprehensive platform-wise, category-wise, monthly, and yearly reports across food delivery, grocery, and online shopping.
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-controller="PurchaseOrders" asp-action="ExportCsv" 
+           asp-route-year="@Model.SelectedYear" 
+           asp-route-month="@(Model.ReportType == "Monthly" ? Model.SelectedMonth : null)" 
+           class="btn btn-outline-success d-inline-flex align-items-center shadow-sm">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Orders CSV
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-secondary d-none d-sm-inline-flex align-items-center">
+            <i class="bi bi-printer me-1"></i> Print / Save PDF
+        </button>
+    </div>
+</div>
+
+<!-- Report Controls & Period Selector -->
+<div class="card card-custom bg-white mb-4 border-0 shadow-sm">
+    <div class="card-body">
+        <form method="get" asp-action="Index" class="row g-3 align-items-end">
+            <!-- Report Scope Toggle -->
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Report Scope</label>
+                <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" name="reportType" id="scopeMonthly" value="Monthly" 
+                           @(Model.ReportType == "Monthly" ? "checked" : "") onchange="this.form.submit()">
+                    <label class="btn btn-outline-primary btn-sm" for="scopeMonthly">
+                        <i class="bi bi-calendar-month me-1"></i> Monthly
+                    </label>
+
+                    <input type="radio" class="btn-check" name="reportType" id="scopeYearly" value="Yearly" 
+                           @(Model.ReportType == "Yearly" ? "checked" : "") onchange="this.form.submit()">
+                    <label class="btn btn-outline-primary btn-sm" for="scopeYearly">
+                        <i class="bi bi-calendar3 me-1"></i> Yearly
+                    </label>
+                </div>
+            </div>
+
+            <!-- Month (shown when Monthly selected) -->
+            @if (Model.ReportType == "Monthly")
+            {
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Month</label>
+                    <select name="month" class="form-select form-select-sm">
+                        @if (months != null)
+                        {
+                            foreach (var m in months)
+                            {
+                                <option value="@m.Index" selected="@(m.Index == Model.SelectedMonth)">@m.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+            }
+
+            <!-- Year -->
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Year</label>
+                <select name="year" class="form-select form-select-sm">
+                    @foreach (var y in years)
+                    {
+                        <option value="@y" selected="@(y == Model.SelectedYear)">@y</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Submit -->
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-funnel-fill me-1"></i> Generate Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Financial Summary Cards -->
+<div class="row g-3 mb-4">
+    <!-- Total Income -->
+    <div class="col-md-3 col-6">
+        <div class="card card-custom bg-white p-3 border-start border-4 border-success h-100">
+            <span class="text-muted small text-uppercase fw-bold">Total Income</span>
+            <h3 class="fw-bold text-success mb-0 mt-1">₹@Model.TotalIncome.ToString("N2")</h3>
+            <span class="small text-muted mt-2">
+                <i class="bi bi-wallet2 text-success me-1"></i> Inflow for period
+            </span>
+        </div>
+    </div>
+
+    <!-- Total Purchases / Expenses -->
+    <div class="col-md-3 col-6">
+        <div class="card card-custom bg-white p-3 border-start border-4 border-danger h-100">
+            <span class="text-muted small text-uppercase fw-bold">Total Purchases / Spend</span>
+            <h3 class="fw-bold text-danger mb-0 mt-1">₹@Model.TotalExpenses.ToString("N2")</h3>
+            <span class="small text-muted mt-2">
+                <i class="bi bi-cart text-danger me-1"></i> @Model.TotalPurchasesCount purchases logged
+            </span>
+        </div>
+    </div>
+
+    <!-- Net Savings -->
+    <div class="col-md-3 col-6">
+        <div class="card card-custom bg-white p-3 border-start border-4 @(Model.NetSavings >= 0 ? "border-primary" : "border-warning") h-100">
+            <span class="text-muted small text-uppercase fw-bold">Net Savings</span>
+            <h3 class="fw-bold @(Model.NetSavings >= 0 ? "text-primary" : "text-warning") mb-0 mt-1">
+                ₹@Model.NetSavings.ToString("N2")
+            </h3>
+            <span class="small text-muted mt-2">
+                Savings Rate: <strong class="@(Model.SavingsRatePercentage >= 20 ? "text-success" : "text-dark")">@Model.SavingsRatePercentage%</strong>
+            </span>
+        </div>
+    </div>
+
+    <!-- Top Spending Platform -->
+    <div class="col-md-3 col-6">
+        <div class="card card-custom bg-white p-3 border-start border-4 border-info h-100">
+            <span class="text-muted small text-uppercase fw-bold">Top Platform</span>
+            <h4 class="fw-bold text-dark mb-0 mt-1 text-truncate">
+                @(Model.TopSpendingPlatform ?? "No Purchases")
+            </h4>
+            <span class="small text-muted mt-2">
+                @if (Model.TopPlatformAmount > 0)
+                {
+                    <span>Spent: <strong>₹@Model.TopPlatformAmount.ToString("N2")</strong></span>
+                }
+                else
+                {
+                    <span>Avg Order: ₹@Model.AveragePurchaseAmount.ToString("N2")</span>
+                }
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row: Platform Breakdown & Category Breakdown -->
+<div class="row g-4 mb-4">
+    <!-- Platform Distribution Chart -->
+    <div class="col-lg-6">
+        <div class="card card-custom bg-white h-100">
+            <div class="card-header bg-transparent border-0 pt-3 px-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">
+                    <i class="bi bi-pie-chart-fill text-primary me-2"></i>Platform Spending Distribution
+                </h6>
+                <span class="badge bg-primary-subtle text-primary small">Food • Grocery • Shopping</span>
+            </div>
+            <div class="card-body">
+                @if (Model.PlatformBreakdown.Any())
+                {
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="platformReportChart"></canvas>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-bag-x fs-1 mb-2 d-block text-secondary"></i>
+                        No purchase records found for this period.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Distribution Chart -->
+    <div class="col-lg-6">
+        <div class="card card-custom bg-white h-100">
+            <div class="card-header bg-transparent border-0 pt-3 px-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">
+                    <i class="bi bi-tags-fill text-success me-2"></i>Category Spending Breakdown
+                </h6>
+                <span class="badge bg-success-subtle text-success small">Category Breakdown</span>
+            </div>
+            <div class="card-body">
+                @if (Model.CategoryBreakdown.Any())
+                {
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="categoryReportChart"></canvas>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-tag fs-1 mb-2 d-block text-secondary"></i>
+                        No expense categories recorded.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- If Yearly Mode: Annual 12-Month Table & Chart -->
+@if (Model.ReportType == "Yearly" && Model.YearlyMonthlySummaries.Any())
+{
+    <div class="card card-custom bg-white mb-4">
+        <div class="card-header bg-transparent border-0 pt-3 px-3 d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0">
+                <i class="bi bi-bar-chart-line-fill text-indigo me-2"></i>12-Month Income vs. Expense Trend (@Model.SelectedYear)
+            </h6>
+            @if (!string.IsNullOrEmpty(Model.PeakExpenseMonth))
+            {
+                <span class="badge bg-danger-subtle text-danger small">
+                    Peak Spend Month: @Model.PeakExpenseMonth (₹@Model.PeakExpenseAmount.ToString("N2"))
+                </span>
+            }
+        </div>
+        <div class="card-body">
+            <div style="height: 280px; position: relative;" class="mb-4">
+                <canvas id="yearlyTrendChart"></canvas>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 table-custom">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Month</th>
+                            <th class="text-end text-success">Income</th>
+                            <th class="text-end text-danger">Expense</th>
+                            <th class="text-end">Net Savings</th>
+                            <th class="text-end">Budget</th>
+                            <th class="text-center pe-3">Top Platform</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in Model.YearlyMonthlySummaries)
+                        {
+                            <tr>
+                                <td class="ps-3 fw-bold text-dark">@m.MonthName</td>
+                                <td class="text-end text-success fw-semibold">₹@m.Income.ToString("N2")</td>
+                                <td class="text-end text-danger fw-semibold">₹@m.Expense.ToString("N2")</td>
+                                <td class="text-end fw-bold @(m.NetBalance >= 0 ? "text-primary" : "text-danger")">
+                                    ₹@m.NetBalance.ToString("N2")
+                                </td>
+                                <td class="text-end text-muted">
+                                    @(m.Budget > 0 ? $"₹{m.Budget:N2}" : "—")
+                                </td>
+                                <td class="text-center pe-3">
+                                    @if (!string.IsNullOrEmpty(m.TopPlatform))
+                                    {
+                                        <span class="badge" style="@PersonalExpenseTracker.Models.PurchasePlatforms.GetBadgeStyle(m.TopPlatform)">
+                                            @m.TopPlatform
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Platform-wise Detailed Table -->
+<div class="card card-custom bg-white mb-4">
+    <div class="card-header bg-transparent border-0 pt-3 px-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h6 class="fw-bold mb-0">
+                <i class="bi bi-shop-window text-primary me-2"></i>Platform-wise Purchase Summary
+            </h6>
+            <small class="text-muted">Centralized purchases across Swiggy, Zomato, Blinkit, Zepto, Amazon, Flipkart, etc.</small>
+        </div>
+        <span class="badge bg-primary small">@Model.PlatformBreakdown.Count Platforms Active</span>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.PlatformBreakdown.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 table-custom">
+                    <thead>
+                        <tr>
+                            <th class="ps-3">Platform / Store</th>
+                            <th class="text-center">Orders</th>
+                            <th class="text-end">Avg. Order Value</th>
+                            <th>Top Category</th>
+                            <th class="text-end">Total Spent</th>
+                            <th class="pe-3" style="width: 25%;">Spend Share</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.PlatformBreakdown)
+                        {
+                            <tr>
+                                <td class="ps-3 fw-bold">
+                                    <span class="badge me-2" style="@PersonalExpenseTracker.Models.PurchasePlatforms.GetBadgeStyle(p.Platform)">
+                                        <i class="bi @PersonalExpenseTracker.Models.PurchasePlatforms.GetIcon(p.Platform) me-1"></i>
+                                        @p.Platform
+                                    </span>
+                                </td>
+                                <td class="text-center">@p.OrderCount</td>
+                                <td class="text-end fw-semibold">₹@p.AverageOrderValue.ToString("N2")</td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">@p.TopCategory</span>
+                                </td>
+                                <td class="text-end fw-bold text-danger">₹@p.TotalSpent.ToString("N2")</td>
+                                <td class="pe-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress flex-fill" style="height: 8px;">
+                                            <div class="progress-bar bg-primary" role="progressbar" 
+                                                 style="width: @p.PercentageOfTotal.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)%;"></div>
+                                        </div>
+                                        <span class="small fw-semibold text-muted" style="min-width: 45px;">@p.PercentageOfTotal%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-4 text-muted">
+                No platform purchases recorded for this period.
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        if (typeof Chart !== 'undefined') {
+            // 1. Platform Breakdown Doughnut Chart
+            const platCanvas = document.getElementById('platformReportChart');
+            if (platCanvas) {
+                const platLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PlatformBreakdown.Select(p => p.Platform)));
+                const platAmounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PlatformBreakdown.Select(p => p.TotalSpent)));
+
+                new Chart(platCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: platLabels,
+                        datasets: [{
+                            data: platAmounts,
+                            backgroundColor: [
+                                '#fc8019', '#cb202d', '#f8cb46', '#57007b', '#ff5200', 
+                                '#232f3e', '#2874f0', '#ff3f6c', '#84c225', '#0b723b',
+                                '#9b27b0', '#fc2779', '#64748b'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8 } }
+                        },
+                        cutout: '60%'
+                    }
+                });
+            }
+
+            // 2. Category Breakdown Chart
+            const catCanvas = document.getElementById('categoryReportChart');
+            if (catCanvas) {
+                const catLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CategoryBreakdown.Select(c => c.Category)));
+                const catAmounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CategoryBreakdown.Select(c => c.TotalSpent)));
+
+                new Chart(catCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: catLabels,
+                        datasets: [{
+                            data: catAmounts,
+                            backgroundColor: [
+                                '#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', 
+                                '#ec4899', '#8b5cf6', '#14b8a6', '#6366f1', '#84cc16'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8 } }
+                        },
+                        cutout: '60%'
+                    }
+                });
+            }
+
+            // 3. Yearly Bar Chart (if in yearly mode)
+            const yrCanvas = document.getElementById('yearlyTrendChart');
+            if (yrCanvas) {
+                const yrLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.YearlyMonthlySummaries.Select(m => m.MonthName)));
+                const yrIncomes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.YearlyMonthlySummaries.Select(m => m.Income)));
+                const yrExpenses = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.YearlyMonthlySummaries.Select(m => m.Expense)));
+
+                new Chart(yrCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: yrLabels,
+                        datasets: [
+                            {
+                                label: 'Income',
+                                data: yrIncomes,
+                                backgroundColor: 'rgba(25, 135, 84, 0.75)',
+                                borderColor: 'rgb(25, 135, 84)',
+                                borderWidth: 1,
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Expense / Purchases',
+                                data: yrExpenses,
+                                backgroundColor: 'rgba(220, 53, 69, 0.75)',
+                                borderColor: 'rgb(220, 53, 69)',
+                                borderWidth: 1,
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(val) { return '₹' + val.toLocaleString(); }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: { position: 'top' }
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+}
+

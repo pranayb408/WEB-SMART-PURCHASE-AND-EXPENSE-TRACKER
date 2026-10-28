@@ -1,0 +1,38 @@
+@model PersonalExpenseTracker.Models.MonthlyBudget
+@{
+    ViewData["Title"] = "Set Monthly Budget";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card card-custom bg-white">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="fw-bold mb-0">Set Monthly Budget</h3>
+                    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left"></i> Back to Budgets
+                    </a>
+                </div>
+                <p class="text-muted small mt-1">Specify an overall monthly spending limit. Each month has a single unique budget.</p>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <partial name="_Form" model="Model" />
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a asp-action="Index" class="btn btn-light px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check2-circle me-1"></i> Save Budget
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

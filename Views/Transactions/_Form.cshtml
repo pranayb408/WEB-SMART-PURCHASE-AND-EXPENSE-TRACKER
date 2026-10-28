@@ -1,0 +1,173 @@
+@model PersonalExpenseTracker.Models.Transaction
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+
+<!-- Type Radio Selection -->
+<div class="mb-3">
+    <label class="form-label fw-semibold">Transaction Type</label>
+    <div class="d-flex gap-3">
+        <div class="form-check form-check-inline p-2 border rounded-3 flex-fill text-center @(Model.Type == "Expense" ? "bg-danger-subtle border-danger" : "")" id="expenseBox" style="cursor: pointer;" onclick="document.getElementById('typeExp').checked = true; switchCategories('Expense');">
+            <input class="form-check-input" type="radio" asp-for="Type" value="Expense" id="typeExp" onchange="switchCategories('Expense')">
+            <label class="form-check-label fw-bold text-danger" for="typeExp" style="cursor: pointer;">
+                <i class="bi bi-dash-circle me-1"></i> Purchase / Expense
+            </label>
+        </div>
+        <div class="form-check form-check-inline p-2 border rounded-3 flex-fill text-center @(Model.Type == "Income" ? "bg-success-subtle border-success" : "")" id="incomeBox" style="cursor: pointer;" onclick="document.getElementById('typeInc').checked = true; switchCategories('Income');">
+            <input class="form-check-input" type="radio" asp-for="Type" value="Income" id="typeInc" onchange="switchCategories('Income')">
+            <label class="form-check-label fw-bold text-success" for="typeInc" style="cursor: pointer;">
+                <i class="bi bi-plus-circle me-1"></i> Income / Inflow
+            </label>
+        </div>
+    </div>
+    <span asp-validation-for="Type" class="text-danger small"></span>
+</div>
+
+<!-- Title -->
+<div class="mb-3">
+    <label asp-for="Title" class="form-label fw-semibold"></label>
+    <input asp-for="Title" class="form-control" maxlength="100" placeholder="e.g. Swiggy Gourmet Lunch, Amazon Wireless Headphones, Blinkit Grocery" />
+    <span asp-validation-for="Title" class="text-danger small"></span>
+</div>
+
+<!-- Category & Amount -->
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <label asp-for="Category" class="form-label fw-semibold"></label>
+        <select asp-for="Category" class="form-select" id="categorySelect">
+            <option value="">-- Choose Category --</option>
+            @if (ViewBag.CurrentCategories != null)
+            {
+                foreach (var cat in (List<string>)ViewBag.CurrentCategories)
+                {
+                    <option value="@cat" selected="@(cat == Model.Category)">@cat</option>
+                }
+            }
+        </select>
+        <span asp-validation-for="Category" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Amount" class="form-label fw-semibold"></label>
+        <div class="input-group">
+            <span class="input-group-text">₹</span>
+            <input asp-for="Amount" type="number" step="0.01" min="0.01" class="form-control" placeholder="0.00" />
+        </div>
+        <span asp-validation-for="Amount" class="text-danger small"></span>
+    </div>
+</div>
+
+<!-- Platform / App Selection -->
+<div class="mb-3" id="platformSection">
+    <label asp-for="Platform" class="form-label fw-semibold">
+        <i class="bi bi-shop text-primary me-1"></i> Purchase Platform / Store
+    </label>
+    
+    <!-- Quick Preset Buttons for top delivery & shopping apps -->
+    <div class="d-flex flex-wrap gap-1 mb-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setPlatform('Swiggy')">🍔 Swiggy</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setPlatform('Zomato')">🍕 Zomato</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setPlatform('Blinkit')">⚡ Blinkit</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setPlatform('Zepto')">🚀 Zepto</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setPlatform('Instamart')">🥕 Instamart</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setPlatform('Amazon')">📦 Amazon</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setPlatform('Flipkart')">🛍️ Flipkart</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setPlatform('Myntra')">👗 Myntra</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="setPlatform('Direct / In-Store')">🏪 Direct/Store</button>
+    </div>
+
+    <select asp-for="Platform" class="form-select" id="platformSelect">
+        <option value="Direct / In-Store">Direct / In-Store (Cash/Card/UPI)</option>
+        @if (ViewBag.GroupedPlatforms != null)
+        {
+            foreach (var group in (Dictionary<string, List<string>>)ViewBag.GroupedPlatforms)
+            {
+                <optgroup label="@group.Key">
+                    @foreach (var plat in group.Value)
+                    {
+                        <option value="@plat" selected="@(plat == Model.Platform)">@plat</option>
+                    }
+                </optgroup>
+            }
+        }
+    </select>
+    <span asp-validation-for="Platform" class="text-danger small"></span>
+</div>
+
+<!-- Order Number & Payment Method -->
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <label asp-for="OrderNumber" class="form-label fw-semibold">
+            <i class="bi bi-hash text-muted me-1"></i> Order / Receipt ID (Optional)
+        </label>
+        <input asp-for="OrderNumber" class="form-control" placeholder="e.g. #SWIGGY-8941, OD12345678" maxlength="60" />
+        <span asp-validation-for="OrderNumber" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="PaymentMethod" class="form-label fw-semibold">
+            <i class="bi bi-credit-card-2-front text-muted me-1"></i> Payment Method (Optional)
+        </label>
+        <select asp-for="PaymentMethod" class="form-select">
+            <option value="">-- Choose Payment Mode --</option>
+            @if (ViewBag.PaymentMethods != null)
+            {
+                foreach (var pm in (List<string>)ViewBag.PaymentMethods)
+                {
+                    <option value="@pm" selected="@(pm == Model.PaymentMethod)">@pm</option>
+                }
+            }
+        </select>
+        <span asp-validation-for="PaymentMethod" class="text-danger small"></span>
+    </div>
+</div>
+
+<!-- Date -->
+<div class="mb-3">
+    <label asp-for="Date" class="form-label fw-semibold"></label>
+    <input asp-for="Date" type="date" class="form-control" />
+    <span asp-validation-for="Date" class="text-danger small"></span>
+</div>
+
+<!-- Notes -->
+<div class="mb-4">
+    <label asp-for="Notes" class="form-label fw-semibold"></label>
+    <textarea asp-for="Notes" class="form-control" rows="3" maxlength="300" placeholder="Optional purchase notes, delivered items summary, discounts, merchant info..."></textarea>
+    <span asp-validation-for="Notes" class="text-danger small"></span>
+</div>
+
+<script>
+    const expenseList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.ExpenseCategories ?? PersonalExpenseTracker.Models.TransactionCategories.ExpenseCategories));
+    const incomeList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.IncomeCategories ?? PersonalExpenseTracker.Models.TransactionCategories.IncomeCategories));
+
+    function setPlatform(val) {
+        const select = document.getElementById('platformSelect');
+        if (select) {
+            select.value = val;
+        }
+    }
+
+    function switchCategories(type) {
+        const select = document.getElementById('categorySelect');
+        const expBox = document.getElementById('expenseBox');
+        const incBox = document.getElementById('incomeBox');
+        const platSection = document.getElementById('platformSection');
+
+        if (type === 'Expense') {
+            expBox.classList.add('bg-danger-subtle', 'border-danger');
+            incBox.classList.remove('bg-success-subtle', 'border-success');
+            if (platSection) platSection.style.display = 'block';
+        } else {
+            incBox.classList.add('bg-success-subtle', 'border-success');
+            expBox.classList.remove('bg-danger-subtle', 'border-danger');
+        }
+
+        const list = type === 'Income' ? incomeList : expenseList;
+        const currentVal = select.value;
+        select.innerHTML = '<option value="">-- Choose Category --</option>';
+        list.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item;
+            opt.textContent = item;
+            if (item === currentVal) opt.selected = true;
+            select.appendChild(opt);
+        });
+    }
+</script>

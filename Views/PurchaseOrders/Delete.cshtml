@@ -1,0 +1,66 @@
+@model PersonalExpenseTracker.Models.PurchaseOrder
+@{
+    ViewData["Title"] = $"Delete Purchase Order #{Model.Id}";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card card-custom bg-white p-4 shadow-sm border border-danger-subtle">
+            <div class="text-center mb-4">
+                <div class="icon-box bg-danger-subtle text-danger mx-auto mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h3 class="fw-bold text-danger">Delete Purchase Order?</h3>
+                <p class="text-muted">Are you sure you want to permanently delete this order and all its itemized products?</p>
+            </div>
+
+            <!-- Order Snapshot -->
+            <div class="card bg-light p-3 mb-4 border">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small">Order ID / Number:</span>
+                    <span class="fw-bold font-monospace">
+                        @(string.IsNullOrEmpty(Model.ExternalOrderNumber) ? $"ORD-#{Model.Id}" : Model.ExternalOrderNumber)
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small">Platform:</span>
+                    <span class="badge bg-light text-dark border">@(Model.Platform?.Name ?? "Direct")</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small">Order Date:</span>
+                    <span class="fw-medium">@Model.OrderDate.ToString("dd MMMM yyyy")</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small">Total Item Count:</span>
+                    <span class="badge bg-info-subtle text-info-emphasis">@(Model.Items?.Count ?? 0) item(s)</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small">Final Bill Amount:</span>
+                    <span class="fw-bold text-primary">₹@Model.FinalBillAmount.ToString("N2")</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                    <span class="fw-semibold">Net Realized Spending:</span>
+                    <span class="fw-bold text-danger fs-5">₹@Model.NetPurchaseSpending.ToString("N2")</span>
+                </div>
+            </div>
+
+            <div class="alert alert-warning small mb-4">
+                <i class="bi bi-info-circle me-1"></i> Deleting this order will automatically cascade-remove its @(Model.Items?.Count ?? 0) itemized product records. Historical category and platform metrics will update accordingly.
+            </div>
+
+            <form asp-action="Delete" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <div class="d-flex justify-content-between gap-3">
+                    <a asp-action="Index" class="btn btn-outline-secondary px-4">
+                        <i class="bi bi-x-circle me-1"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-danger px-4 shadow-sm">
+                        <i class="bi bi-trash-fill me-1"></i> Yes, Delete Order
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+

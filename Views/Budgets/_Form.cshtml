@@ -1,0 +1,44 @@
+@model PersonalExpenseTracker.Models.MonthlyBudget
+@{
+    var months = System.Globalization.DateTimeFormatInfo.InvariantInfo.MonthNames.Take(12).Select((name, index) => new { Index = index + 1, Name = name }).ToList();
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+
+<div class="row g-3 mb-3">
+    <!-- Month -->
+    <div class="col-md-6">
+        <label asp-for="Month" class="form-label fw-semibold"></label>
+        <select asp-for="Month" class="form-select">
+            @foreach (var m in months)
+            {
+                <option value="@m.Index" selected="@(m.Index == Model.Month)">@m.Name</option>
+            }
+        </select>
+        <span asp-validation-for="Month" class="text-danger small"></span>
+    </div>
+
+    <!-- Year -->
+    <div class="col-md-6">
+        <label asp-for="Year" class="form-label fw-semibold"></label>
+        <select asp-for="Year" class="form-select">
+            @for (int y = DateTime.Today.Year - 4; y <= DateTime.Today.Year + 5; y++)
+            {
+                <option value="@y" selected="@(y == Model.Year)">@y</option>
+            }
+        </select>
+        <span asp-validation-for="Year" class="text-danger small"></span>
+    </div>
+</div>
+
+<!-- Budget Limit Amount -->
+<div class="mb-4">
+    <label asp-for="Amount" class="form-label fw-semibold"></label>
+    <div class="input-group">
+        <span class="input-group-text">₹</span>
+        <input asp-for="Amount" type="number" step="0.01" min="0.01" class="form-control" placeholder="e.g. 15000.00" />
+    </div>
+    <span asp-validation-for="Amount" class="text-danger small"></span>
+    <small class="text-muted">Enter the maximum allowable spending cap for this month.</small>
+</div>
+

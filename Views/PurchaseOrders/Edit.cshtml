@@ -1,0 +1,273 @@
+@model PersonalExpenseTracker.ViewModels.PurchaseOrderFormViewModel
+@{
+    ViewData["Title"] = $"Edit Purchase Order #{Model.Id}";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">
+                    <i class="bi bi-pencil-square text-primary me-2"></i>Edit Purchase Order #@Model.Id
+                </h2>
+                <p class="text-muted mb-0">Modify items, recalculate totals, update delivery fees, or record refunds.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info">
+                    <i class="bi bi-eye me-1"></i> View Details
+                </a>
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Orders
+                </a>
+            </div>
+        </div>
+
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post" id="purchaseOrderForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger shadow-sm mb-4" role="alert"></div>
+
+            <!-- 1. Order Header Card -->
+            <div class="card card-custom bg-white p-4 mb-4 shadow-sm border">
+                <h5 class="fw-bold mb-3 text-dark border-bottom pb-2">
+                    <i class="bi bi-info-circle text-primary me-2"></i>Order Information
+                </h5>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="PlatformId" class="form-label fw-semibold"></label>
+                        <select asp-for="PlatformId" class="form-select" asp-items="Model.PlatformOptions" required>
+                        </select>
+                        <span asp-validation-for="PlatformId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="ExternalOrderNumber" class="form-label fw-semibold"></label>
+                        <input asp-for="ExternalOrderNumber" class="form-control font-monospace" placeholder="e.g. #ORD-892348" />
+                        <span asp-validation-for="ExternalOrderNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="OrderDate" class="form-label fw-semibold"></label>
+                        <input asp-for="OrderDate" class="form-control" type="date" required />
+                        <span asp-validation-for="OrderDate" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="OrderStatus" class="form-label fw-semibold"></label>
+                        <select asp-for="OrderStatus" class="form-select" asp-items="Model.StatusOptions" id="orderStatusSelect" onchange="calculateLiveBill()">
+                        </select>
+                        <span asp-validation-for="OrderStatus" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="PaymentMethod" class="form-label fw-semibold"></label>
+                        <select asp-for="PaymentMethod" class="form-select" asp-items="Model.PaymentMethodOptions">
+                        </select>
+                        <span asp-validation-for="PaymentMethod" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="SourceType" class="form-label fw-semibold"></label>
+                        <select asp-for="SourceType" class="form-select" asp-items="Model.SourceTypeOptions">
+                        </select>
+                        <span asp-validation-for="SourceType" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Dynamic Order Items Card -->
+            <div class="card card-custom bg-white p-4 mb-4 shadow-sm border">
+                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark">
+                            <i class="bi bi-basket2 text-primary me-2"></i>Itemized Products
+                        </h5>
+                        <small class="text-muted">Modify existing products, add new items, or delete removed rows.</small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="addItemBtn" onclick="addItemRow(categoryOptionsHtml)">
+                        <i class="bi bi-plus-lg me-1"></i> Add Another Item
+                    </button>
+                </div>
+
+                <div class="table-responsive mb-2">
+                    <table class="table table-bordered align-middle" id="itemsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 35%;">Product / Item Name <span class="text-danger">*</span></th>
+                                <th style="width: 25%;">Category <span class="text-danger">*</span></th>
+                                <th style="width: 12%;">Qty <span class="text-danger">*</span></th>
+                                <th style="width: 15%;">Unit Price (₹) <span class="text-danger">*</span></th>
+                                <th style="width: 15%;">Line Total (₹)</th>
+                                <th style="width: 5%;" class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody">
+                            @for (int i = 0; i < Model.Items.Count; i++)
+                            {
+                                <tr class="item-row" data-index="@i">
+                                    <td>
+                                        <input type="hidden" name="Items[@i].Id" value="@Model.Items[i].Id" />
+                                        <input type="text" name="Items[@i].ItemName" value="@Model.Items[i].ItemName" class="form-control form-control-sm item-name" required />
+                                    </td>
+                                    <td>
+                                        <select name="Items[@i].CategoryId" class="form-select form-select-sm item-category" required>
+                                            @foreach (var cat in Model.CategoryOptions)
+                                            {
+                                                <option value="@cat.Value" selected="@(cat.Value == Model.Items[i].CategoryId.ToString())">@cat.Text</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="Items[@i].Quantity" value="@Model.Items[i].Quantity" class="form-control form-control-sm item-qty" min="1" max="10000" oninput="calculateLiveBill()" required />
+                                    </td>
+                                    <td>
+                                        <input type="number" step="0.01" name="Items[@i].UnitPrice" value="@Model.Items[i].UnitPrice.ToString("F2")" class="form-control form-control-sm item-price" min="0" oninput="calculateLiveBill()" required />
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold item-subtotal text-end d-block">₹@Model.Items[i].LineSubtotal.ToString("N2")</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeItemRow(this)" title="Remove item">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 3. Additional Charges, Taxes, Discounts & Live Bill Calculation -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-7">
+                    <div class="card card-custom bg-white p-4 shadow-sm h-100 border">
+                        <h5 class="fw-bold mb-3 text-dark border-bottom pb-2">
+                            <i class="bi bi-receipt text-primary me-2"></i>Delivery, Fees & Discounts
+                        </h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="DeliveryFee" class="form-label small fw-semibold"></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="DeliveryFee" class="form-control bill-input" step="0.01" min="0" oninput="calculateLiveBill()" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="PackagingFee" class="form-label small fw-semibold"></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="PackagingFee" class="form-control bill-input" step="0.01" min="0" oninput="calculateLiveBill()" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="PlatformFee" class="form-label small fw-semibold"></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="PlatformFee" class="form-control bill-input" step="0.01" min="0" oninput="calculateLiveBill()" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Taxes" class="form-label small fw-semibold"></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="Taxes" class="form-control bill-input" step="0.01" min="0" oninput="calculateLiveBill()" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="OtherCharges" class="form-label small fw-semibold"></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="OtherCharges" class="form-control bill-input" step="0.01" min="0" oninput="calculateLiveBill()" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Discount" class="form-label small fw-semibold text-success"></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text text-success">-₹</span>
+                                    <input asp-for="Discount" class="form-control bill-input text-success fw-bold" step="0.01" min="0" oninput="calculateLiveBill()" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="RefundAmount" class="form-label small fw-semibold text-danger"></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text text-danger">-₹</span>
+                                    <input asp-for="RefundAmount" class="form-control bill-input text-danger" step="0.01" min="0" oninput="calculateLiveBill()" />
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="Notes" class="form-label small fw-semibold"></label>
+                                <textarea asp-for="Notes" class="form-control form-control-sm" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Live Summary Card -->
+                <div class="col-md-5">
+                    <div class="card card-custom bg-light p-4 shadow-sm border border-primary-subtle h-100">
+                        <h5 class="fw-bold mb-3 text-dark border-bottom pb-2">
+                            <i class="bi bi-calculator-fill text-primary me-2"></i>Updated Bill Preview
+                        </h5>
+
+                        <ul class="list-group list-group-flush mb-3 bg-transparent">
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-2">
+                                <span class="text-muted">Items Subtotal:</span>
+                                <span class="fw-semibold" id="previewSubtotal">₹0.00</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-2">
+                                <span class="text-muted">Delivery + Packaging + Platform:</span>
+                                <span class="fw-semibold" id="previewFees">₹0.00</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-2">
+                                <span class="text-muted">Taxes & Other Charges:</span>
+                                <span class="fw-semibold" id="previewTaxes">₹0.00</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-2 text-success">
+                                <span>Discount / Coupons:</span>
+                                <span class="fw-bold" id="previewDiscount">-₹0.00</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-3 border-top border-2">
+                                <span class="fw-bold fs-6">Final Bill Amount:</span>
+                                <span class="fw-bold fs-5 text-primary" id="previewFinalBill">₹0.00</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-2 text-danger">
+                                <span>Recorded Refund:</span>
+                                <span class="fw-bold" id="previewRefund">-₹0.00</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-3 border-top border-2 border-danger-subtle bg-white rounded p-2 mt-2">
+                                <span class="fw-bold text-dark">Net Realized Spending:</span>
+                                <span class="fw-bold fs-5 text-danger" id="previewNetSpending">₹0.00</span>
+                            </li>
+                        </ul>
+
+                        <div class="small text-muted mb-3" id="statusNotice">
+                            <i class="bi bi-shield-check text-success me-1"></i> Changes will be verified and recalculated on the server.
+                        </div>
+
+                        <div class="d-grid gap-2 mt-auto">
+                            <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+                                <i class="bi bi-check2-circle me-1"></i> Update Purchase Order
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/orders.js" asp-append-version="true"></script>
+    <script>
+        const categoryOptionsHtml = `@foreach (var cat in Model.CategoryOptions) { <option value="@cat.Value">@cat.Text</option> }`;
+
+        document.addEventListener('DOMContentLoaded', calculateLiveBill);
+    </script>
+}
+

@@ -1,0 +1,247 @@
+@model PersonalExpenseTracker.ViewModels.PurchaseOrderFilterViewModel
+@{
+    ViewData["Title"] = "Smart Purchase Orders";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1">
+            <i class="bi bi-cart-check-fill text-primary me-2"></i>Smart Purchase Orders
+        </h2>
+        <p class="text-muted mb-0">Track and itemize purchases from food delivery, grocery, and online shopping platforms.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-action="DownloadTemplate" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm" title="Download sample CSV format">
+            <i class="bi bi-file-earmark-arrow-down me-1"></i> Template
+        </a>
+        <a asp-action="Import" class="btn btn-outline-primary rounded-pill px-3 shadow-sm">
+            <i class="bi bi-file-earmark-arrow-up me-1"></i> Import CSV
+        </a>
+        <a asp-action="ExportCsv" 
+           asp-route-year="@Model.SelectedYear" 
+           asp-route-month="@Model.SelectedMonth" 
+           asp-route-platformId="@Model.SelectedPlatformId" 
+           asp-route-categoryId="@Model.SelectedCategoryId" 
+           asp-route-status="@Model.SelectedStatus" 
+           asp-route-search="@Model.SearchTerm" 
+           class="btn btn-outline-success rounded-pill px-3 shadow-sm">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+        </a>
+        <a asp-action="Create" class="btn btn-primary rounded-pill px-4 shadow-sm">
+            <i class="bi bi-plus-circle me-1"></i> + New Purchase Order
+        </a>
+    </div>
+</div>
+
+<!-- 1. Top Metrics Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card bg-white p-3 border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small text-uppercase fw-bold">Total Orders</span>
+                    <h4 class="fw-bold text-dark mt-1 mb-0">@Model.TotalOrdersCount</h4>
+                </div>
+                <div class="icon-box bg-primary-subtle text-primary">
+                    <i class="bi bi-receipt-cutoff fs-4"></i>
+                </div>
+            </div>
+            <small class="text-muted mt-2 d-block">@Model.CompletedOrdersCount Completed, @Model.PendingOrdersCount Pending</small>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stat-card bg-white p-3 border-start border-4 border-danger">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small text-uppercase fw-bold">Net Spending</span>
+                    <h4 class="fw-bold text-danger mt-1 mb-0">₹@Model.NetSpending.ToString("N2")</h4>
+                </div>
+                <div class="icon-box bg-danger-subtle text-danger">
+                    <i class="bi bi-wallet2 fs-4"></i>
+                </div>
+            </div>
+            <small class="text-muted mt-2 d-block">Completed orders minus refunds</small>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stat-card bg-white p-3 border-start border-4 border-warning">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small text-uppercase fw-bold">Pending Orders</span>
+                    <h4 class="fw-bold text-warning mt-1 mb-0">@Model.PendingOrdersCount</h4>
+                </div>
+                <div class="icon-box bg-warning-subtle text-warning">
+                    <i class="bi bi-clock-history fs-4"></i>
+                </div>
+            </div>
+            <small class="text-muted mt-2 d-block">Awaiting delivery / processing</small>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stat-card bg-white p-3 border-start border-4 border-success">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small text-uppercase fw-bold">Total Refunds</span>
+                    <h4 class="fw-bold text-success mt-1 mb-0">₹@Model.TotalRefunds.ToString("N2")</h4>
+                </div>
+                <div class="icon-box bg-success-subtle text-success">
+                    <i class="bi bi-arrow-counterclockwise fs-4"></i>
+                </div>
+            </div>
+            <small class="text-muted mt-2 d-block">Recovered / returned amounts</small>
+        </div>
+    </div>
+</div>
+
+<!-- 2. SQL-Level Filters Form -->
+<div class="card card-custom bg-white p-3 mb-4 shadow-sm border">
+    <form method="get" asp-action="Index" class="row g-2 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label small text-muted fw-semibold mb-1">Month</label>
+            <select name="month" class="form-select form-select-sm" asp-items="Model.MonthOptions"></select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted fw-semibold mb-1">Year</label>
+            <select name="year" class="form-select form-select-sm" asp-items="Model.YearOptions"></select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted fw-semibold mb-1">Platform</label>
+            <select name="platformId" class="form-select form-select-sm" asp-items="Model.PlatformOptions"></select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted fw-semibold mb-1">Category</label>
+            <select name="categoryId" class="form-select form-select-sm" asp-items="Model.CategoryOptions"></select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small text-muted fw-semibold mb-1">Status</label>
+            <select name="status" class="form-select form-select-sm" asp-items="Model.StatusOptions"></select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-sm btn-primary w-100">
+                <i class="bi bi-funnel me-1"></i> Filter
+            </button>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary" title="Reset Filters">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </a>
+        </div>
+        <div class="col-12 mt-2">
+            <input type="text" name="searchTerm" value="@Model.SearchTerm" class="form-control form-control-sm" placeholder="Search by order number, notes, or product/item name..." />
+        </div>
+    </form>
+</div>
+
+<!-- 3. Orders Table -->
+<div class="card card-custom bg-white shadow-sm overflow-hidden border">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Order Date</th>
+                    <th>Platform</th>
+                    <th>Order #</th>
+                    <th>Items</th>
+                    <th class="text-end">Final Bill</th>
+                    <th class="text-end">Refund</th>
+                    <th class="text-end">Net Spending</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-end pe-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Orders != null && Model.Orders.Any())
+                {
+                    @foreach (var order in Model.Orders)
+                    {
+                        var statusBadgeClass = order.OrderStatus switch
+                        {
+                            "Completed" => "bg-success-subtle text-success border border-success-subtle",
+                            "Pending" => "bg-warning-subtle text-warning-emphasis border border-warning-subtle",
+                            "Cancelled" => "bg-danger-subtle text-danger border border-danger-subtle",
+                            _ => "bg-secondary-subtle text-secondary"
+                        };
+
+                        <tr>
+                            <td class="ps-3 fw-medium">
+                                @order.OrderDate.ToString("dd MMM yyyy")
+                                <small class="text-muted d-block font-monospace">@order.SourceType</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">
+                                    <i class="bi bi-shop me-1 text-primary"></i>@(order.Platform?.Name ?? "Direct")
+                                </span>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(order.ExternalOrderNumber))
+                                {
+                                    <span class="badge bg-secondary-subtle text-dark border font-monospace">
+                                        @order.ExternalOrderNumber
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">ORD-#@order.Id</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge bg-info-subtle text-info-emphasis rounded-pill px-2">
+                                    @(order.Items?.Count ?? 0) item(s)
+                                </span>
+                                @if (order.Items != null && order.Items.Any())
+                                {
+                                    <small class="text-muted d-block text-truncate" style="max-width: 180px;">
+                                        @string.Join(", ", order.Items.Take(2).Select(i => i.ItemName))
+                                        @(order.Items.Count > 2 ? "..." : "")
+                                    </small>
+                                }
+                            </td>
+                            <td class="text-end fw-semibold">
+                                ₹@order.FinalBillAmount.ToString("N2")
+                            </td>
+                            <td class="text-end text-success">
+                                @(order.RefundAmount > 0 ? $"-₹{order.RefundAmount:N2}" : "—")
+                            </td>
+                            <td class="text-end fw-bold @(order.OrderStatus == "Completed" ? "text-danger" : "text-muted")">
+                                ₹@order.NetPurchaseSpending.ToString("N2")
+                            </td>
+                            <td class="text-center">
+                                <span class="badge @statusBadgeClass px-2 py-1">
+                                    @order.OrderStatus
+                                </span>
+                            </td>
+                            <td class="text-end pe-3">
+                                <div class="btn-group btn-group-sm">
+                                    <a asp-action="Details" asp-route-id="@order.Id" class="btn btn-outline-info" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@order.Id" class="btn btn-outline-primary" title="Edit Order">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@order.Id" class="btn btn-outline-danger" title="Delete Order">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                            <h6 class="fw-semibold">No purchase orders found</h6>
+                            <p class="small mb-3">No orders match your filter criteria or none have been recorded yet.</p>
+                            <a asp-action="Create" class="btn btn-sm btn-primary rounded-pill px-3">
+                                <i class="bi bi-plus-circle me-1"></i> Record First Order
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+

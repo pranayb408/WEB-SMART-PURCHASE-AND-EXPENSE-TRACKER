@@ -1,0 +1,47 @@
+@model PersonalExpenseTracker.Models.MonthlyBudget
+@{
+    ViewData["Title"] = "Delete Budget";
+    var months = System.Globalization.DateTimeFormatInfo.InvariantInfo.MonthNames.Take(12).ToList();
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card card-custom bg-white border-top border-4 border-danger">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                <div class="d-flex align-items-center gap-2 text-danger mb-2">
+                    <i class="bi bi-exclamation-triangle-fill fs-3"></i>
+                    <h3 class="fw-bold mb-0">Delete Budget</h3>
+                </div>
+                <p class="text-muted">Are you sure you want to delete the monthly budget for @months[Model.Month - 1] @Model.Year?</p>
+                <div class="alert alert-info py-2 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>Note:</strong> Deleting a budget only removes the monthly spending limit. No transaction records will be deleted.
+                </div>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <div class="bg-light p-3 rounded-3 mb-4">
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">Period:</span>
+                        <span class="fw-bold">@months[Model.Month - 1] @Model.Year</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Budget Allowance:</span>
+                        <span class="fs-5 fw-bold text-dark">₹@Model.Amount.ToString("N2")</span>
+                    </div>
+                </div>
+
+                <form asp-action="Delete" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+                    <div class="d-flex justify-content-end gap-2">
+                        <a asp-action="Index" class="btn btn-outline-secondary px-4">Cancel</a>
+                        <button type="submit" class="btn btn-danger px-4">
+                            <i class="bi bi-trash-fill me-1"></i> Delete Budget
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+

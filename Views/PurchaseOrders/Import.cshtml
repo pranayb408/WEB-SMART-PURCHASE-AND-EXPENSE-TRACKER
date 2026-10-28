@@ -1,0 +1,157 @@
+@{
+    ViewData["Title"] = "Import Purchase Orders from CSV";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1">
+            <i class="bi bi-file-earmark-arrow-up text-primary me-2"></i>Import Purchase Orders (CSV)
+        </h2>
+        <p class="text-muted mb-0">Upload multi-platform itemized purchase order data from Swiggy, Zomato, Blinkit, Amazon, etc.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="DownloadTemplate" class="btn btn-outline-success shadow-sm">
+            <i class="bi bi-download me-1"></i> Download CSV Template
+        </a>
+        <a asp-action="Index" class="btn btn-outline-secondary shadow-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back to Orders
+        </a>
+    </div>
+</div>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <div class="d-flex align-items-start">
+            <i class="bi bi-exclamation-triangle-fill fs-5 me-2 mt-1"></i>
+            <div>
+                <h6 class="alert-heading fw-bold mb-1">CSV Upload Errors Encountered</h6>
+                <div asp-validation-summary="All" class="text-danger small mb-0"></div>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row g-4">
+    <!-- Left Column: Upload Form -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-cloud-arrow-up text-primary me-2"></i>Select CSV File
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="PreviewImport" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-4">
+                        <label for="csvFileInput" class="form-label fw-semibold">Choose CSV File</label>
+                        <input class="form-control form-control-lg" type="file" id="csvFileInput" name="csvFile" accept=".csv" required />
+                        <div class="form-text mt-2 text-muted">
+                            <i class="bi bi-info-circle me-1"></i> Maximum file size: <strong>5 MB</strong>. Only standard UTF-8 <code>.csv</code> files are accepted.
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 mb-4 border">
+                        <h6 class="fw-bold text-dark mb-2">
+                            <i class="bi bi-shield-check text-success me-1"></i> Validation &amp; Safety Checks Applied:
+                        </h6>
+                        <ul class="small text-muted mb-0 ps-3">
+                            <li>Multi-row grouping: rows sharing the same Platform &amp; OrderNumber are combined into 1 order.</li>
+                            <li>Order-level consistency: fees, taxes, discounts, and dates must match across grouped rows.</li>
+                            <li>Caps &amp; limits: discounts cannot exceed pre-discount totals, refunds cannot exceed final bill.</li>
+                            <li>Duplicate detection: orders already saved with identical Platform &amp; OrderNumber are flagged.</li>
+                            <li>Formula injection immunity: cell values starting with <code>=, +, -, @@</code> are sanitized.</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a asp-action="Index" class="btn btn-secondary px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                            <i class="bi bi-eye me-1"></i> Preview &amp; Validate CSV
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Format Reference & Guidance -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-journal-text text-secondary me-2"></i>CSV Format Guidelines
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <h6 class="fw-bold text-primary mb-2">Required Columns &amp; Headers</h6>
+                <p class="small text-muted mb-3">
+                    Your CSV must include the following 17 columns in any order (case-insensitive):
+                </p>
+
+                <div class="table-responsive small mb-3">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Field</th>
+                                <th>Description / Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>Platform</code></td>
+                                <td>Platform name (e.g., Swiggy, Zomato, Blinkit, Amazon)</td>
+                            </tr>
+                            <tr>
+                                <td><code>OrderNumber</code></td>
+                                <td>External order ID (e.g., ORD-2026-101)</td>
+                            </tr>
+                            <tr>
+                                <td><code>OrderDate</code></td>
+                                <td>YYYY-MM-DD (e.g., 2026-10-15)</td>
+                            </tr>
+                            <tr>
+                                <td><code>Status</code></td>
+                                <td>Completed, Pending, or Cancelled</td>
+                            </tr>
+                            <tr>
+                                <td><code>PaymentMethod</code></td>
+                                <td>UPI, Credit Card, Debit Card, Cash, etc.</td>
+                            </tr>
+                            <tr>
+                                <td><code>ItemName</code></td>
+                                <td>Description of item (e.g., Toned Milk 1L)</td>
+                            </tr>
+                            <tr>
+                                <td><code>Category</code></td>
+                                <td>Food, Groceries, Electronics, etc.</td>
+                            </tr>
+                            <tr>
+                                <td><code>Quantity</code></td>
+                                <td>Integer quantity &gt;= 1</td>
+                            </tr>
+                            <tr>
+                                <td><code>UnitPrice</code></td>
+                                <td>Positive decimal unit price</td>
+                            </tr>
+                            <tr>
+                                <td><code>DeliveryFee ... RefundAmount</code></td>
+                                <td>Numeric monetary values &gt;= 0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-grid mt-3">
+                    <a asp-action="DownloadTemplate" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-file-earmark-arrow-down me-1"></i> Get pre-filled template with sample rows
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

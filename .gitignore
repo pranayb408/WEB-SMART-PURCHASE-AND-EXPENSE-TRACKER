@@ -1,0 +1,28 @@
+## .NET Build Outputs
+bin/
+obj/
+dist/
+
+## IDE & Agent Artifacts
+.agents/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Database & Local State
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+## Test Artifacts
+TestResults/
+
+## OS Artifacts
+.DS_Store
+Thumbs.db
+desktop.ini

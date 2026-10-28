@@ -1,0 +1,171 @@
+@model List<PersonalExpenseTracker.Models.Category>
+@{
+    ViewData["Title"] = "Category Management";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1">
+            <i class="bi bi-tags-fill text-primary me-2"></i>Category Management
+        </h2>
+        <p class="text-muted mb-0">Manage spending categories for purchase items, transactions, and monthly budgets.</p>
+    </div>
+    <div>
+        <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+            <i class="bi bi-plus-circle me-1"></i> Add Custom Category
+        </button>
+    </div>
+</div>
+
+<div class="card card-custom bg-white shadow-sm overflow-hidden border">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Category Name</th>
+                    <th>Category Type</th>
+                    <th class="text-center">Active Status</th>
+                    <th class="text-center">Historical References</th>
+                    <th class="text-end pe-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var category in Model)
+                    {
+                        int refCount = (category.OrderItems?.Count ?? 0) + (category.CategoryBudgets?.Count ?? 0);
+                        <tr>
+                            <td class="ps-3 fw-bold text-dark">
+                                <i class="bi bi-tag me-2 text-primary"></i>@category.Name
+                            </td>
+                            <td>
+                                <span class="badge @(category.CategoryType == "Income" ? "bg-success-subtle text-success" : "bg-light text-dark border")">
+                                    @category.CategoryType
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                @if (category.IsActive)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary border px-3 py-1">Inactive</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-info-subtle text-info-emphasis rounded-pill px-2" title="@(category.OrderItems?.Count ?? 0) item(s), @(category.CategoryBudgets?.Count ?? 0) budget(s)">
+                                    @refCount reference(s)
+                                </span>
+                            </td>
+                            <td class="text-end pe-3">
+                                <div class="btn-group btn-group-sm">
+                                    <form asp-action="ToggleActive" asp-route-id="@category.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn @(category.IsActive ? "btn-outline-warning" : "btn-outline-success")" title="@(category.IsActive ? "Deactivate" : "Activate")">
+                                            <i class="bi @(category.IsActive ? "bi-slash-circle" : "bi-check-circle") me-1"></i>
+                                            @(category.IsActive ? "Deactivate" : "Activate")
+                                        </button>
+                                    </form>
+
+                                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editCatModal-@category.Id" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+
+                                    <form asp-action="Delete" asp-route-id="@category.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete category \'@category.Name\'?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline-danger" title="Delete" @(refCount > 0 ? "disabled" : "")>
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Edit Modal -->
+                                <div class="modal fade text-start" id="editCatModal-@category.Id" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <form asp-action="Edit" asp-route-id="@category.Id" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title fw-bold">Edit Category: @category.Name</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-semibold">Category Name</label>
+                                                        <input type="text" name="name" value="@category.Name" class="form-control" required />
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-semibold">Category Type</label>
+                                                        <select name="categoryType" class="form-select">
+                                                            <option value="Expense" selected="@(category.CategoryType == "Expense")">Expense</option>
+                                                            <option value="Income" selected="@(category.CategoryType == "Income")">Income</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-tags fs-2 text-secondary d-block mb-2"></i>
+                            <h6 class="fw-bold mb-1">No categories registered yet</h6>
+                            <p class="small text-muted mb-3">Add categories like Food, Groceries, Electronics, or Clothing to categorize orders and budgets.</p>
+                            <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+                                <i class="bi bi-plus-circle me-1"></i> Add Category
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create Category Modal -->
+<div class="modal fade" id="createCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-plus-circle text-primary me-2"></i>Add Category
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Category Name <span class="text-danger">*</span></label>
+                        <input type="text" name="Name" class="form-control" placeholder="e.g. Pet Care, Fitness, Gifts" required />
+                        <small class="text-muted">Must be unique across categories.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Category Type</label>
+                        <select name="CategoryType" class="form-select">
+                            <option value="Expense" selected>Expense</option>
+                            <option value="Income">Income</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
